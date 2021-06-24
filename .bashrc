@@ -121,3 +121,32 @@ branch() {
  git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/(\1)/'
 }
 PS1='\n${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[01;33m\]$(branch)\[\033[00m\]\$ '
+
+# Stop All Docker Containers
+function stop_containers()
+{
+  sudo docker stop $(sudo docker ps -aq)
+}
+# Remove All Stopped Docker Containers
+function remove_containers()
+{
+  sudo docker rm $(sudo docker ps -aq)
+}
+# Prune Docker Containers
+function prune_containers()
+{
+  sudo docker system prune
+}
+function remove_images()
+{
+  docker rmi -f $(docker images -q)
+}
+function remove_volumes()
+{
+  docker volume rm $(docker volume ls -q)
+}
+function dcrflush()
+{
+  docker exec -it $1 redis-cli FLUSHALL
+}
+export PATH=$PATH:$HOME/bin
