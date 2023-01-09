@@ -43,7 +43,7 @@ esac
 # uncomment for a colored prompt, if the terminal has the capability; turned
 # off by default to not distract the user: the focus in a terminal window
 # should be on the output of commands, not on the prompt
-force_color_prompt=yes
+#force_color_prompt=yes
 
 if [ -n "$force_color_prompt" ]; then
     if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
@@ -116,6 +116,13 @@ if ! shopt -oq posix; then
   fi
 fi
 
+# Start Docker daemon automatically when logging in if not running.
+RUNNING=`ps aux | grep dockerd | grep -v grep`
+if [ -z "$RUNNING" ]; then
+    sudo dockerd > /dev/null 2>&1 &
+    disown
+fi
+
 # ===================== Adds GIT BRANCH to PS1 ================================
 branch() {
  git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/(\1)/'
@@ -127,26 +134,74 @@ function stop_containers()
 {
   sudo docker stop $(sudo docker ps -aq)
 }
+
 # Remove All Stopped Docker Containers
 function remove_containers()
 {
   sudo docker rm $(sudo docker ps -aq)
 }
+
 # Prune Docker Containers
 function prune_containers()
 {
   sudo docker system prune
 }
+
 function remove_images()
 {
   docker rmi -f $(docker images -q)
 }
+
 function remove_volumes()
 {
   docker volume rm $(docker volume ls -q)
 }
+
 function dcrflush()
 {
   docker exec -it $1 redis-cli FLUSHALL
 }
-export PATH=$PATH:$HOME/bin
+
+export PATH=$PATH:"/mnt/c/Users/pedro/AppData/Local/Programs/Microsoft VS Code/bin"
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+function encode_password()
+{
+    SALT=$(od -A n -t x -N 4 /dev/urandom)
+    PASS=$SALT$(echo -n $1 | xxd -ps | tr -d '\n' | tr -d ' ')
+    PASS=$(echo -n $PASS | xxd -r -p | sha256sum | head -c 128)
+    PASS=$(echo -n $SALT$PASS | xxd -r -p | base64 | tr -d '\n')
+    echo $PASS
+}
+
+function dcup()
+{
+  docker-compose up
+}
+
+function drop_database()
+{
+  docker-compose run web bundle exec rake db:drop
+}
+
+function setup_database()
+{
+  docker-compose run web bundle exec rake db:setup
+}
+
+function create_database()
+{
+  docker-compose run web bundle exec rake db:create
+}
+
+function migrate_database()
+{
+  docker-compose run web bundle exec rake db:migrate
+}
+
+function docker_rails()
+{
+  docker-compose run web bundle exec rails c
+}
